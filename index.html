@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>il tuo titolo qua</title>
+		<link rel="stylesheet" type="text/css" href="style.css" />
+		<script type="text/javascript">
+		//////////////////global variables ////////////////////////
+		var x = window.innerWidth;
+		var y = window.innerHeight;
+		var stepMove = 0; ///////calculate the step for move right or left /////////
+		var stepJump = 0; ///////calculate the step for jumping /////////
+		var left = 0; ///////fix for move right /////////
+		var right = 0; ///////fix for move right /////////
+		var up = 0; ////fix for jump //////////////
+		var leftLuigi = 0;
+		var rightLuigi = 0;
+		var upLuigi = 0;
+		var stepMoveLuigi = 0;
+		var stepJumpLuigi = 0;
+		var LuigiJump = false;
+		var LuigiMaxJump = 180;
+		var roomLeng; ///// room length /////////////////
+		var marioJump = false; /// mario is not jumping ///////
+		var marioMaxJump = 180; /// -stepjump you want ////////////////////
+		var currentSong = 0; /// default song /////////
+		var enemies = {}; ////all the enemies /////////////////
+		var boxes = {}; /////all boxes /////////////////
+		var coins = {}; /// all coins /////
+		var clouds = {}; /// all clouds ///
+		var mushrooms = {}; //all mushrooms ///
+		var coinsPosition = [];
+		var cloudsPosition = [];
+		var mushroomsPosition = [];
+		var rect;
+		var rect1,rect2, rect3, rect4,rect5;
+		// rect 1 mario, rect 2 nextbox mario, rect3 luigi, rect 4 nextbox luigi, rect5 falg
+		/// mario and next box and next coin ///////////
+		var maxHearts = 3; /// total of hearts //// 
+		var maxCoins = 0;
+		var mario; /// mario global ////
+		var luigi; /// Luigi global ///
+		var flagOn = true; /// flag property////
+		var marioGodMode = false;
+		var luigiGodMode = false;
+		//var key = {37: false, 38: false, 39: false, 40: false, 87: false, 65: false, 83: false, 68: false, };
+		var key = {37: false, 38: false, 39: false, 40: false, 122: false, 123: false };
+		
+		//////////////////////////////////////////////////////////
+		function start () {
+			createRoom();
+			createCoinsAndCloudsAndMushrooms(60,20,20,'coin'); // number of coins e dimension ///
+			createCoinsAndCloudsAndMushrooms(40,150,50,'cloud'); // number of clouds e dimension ///
+			createCoinsAndCloudsAndMushrooms(5,25,25,'mushroom'); // number of mushrooms e dimension ///
+			createBoxes(); //predefinite number of boxes ///
+			createMario();
+			//createLuigi();
+			createEnemies(); //predefinite number of boxes ///
+			moveAllEnemies();
+			audio();
+		}
+		function createRoom () {
+			document.body.innerHTML += '<div id="screen">screen</div>'; ////set the screen ///
+			roomLeng = 10000; /// room lenght ///
+			///////////////drawing the screen ///////////////
+			var scree = document.getElementById('screen');
+			scree.style.width = ''+roomLeng+'px';
+			scree.innerHTML += '<div id="terrain"></div>'; ///draw terrain ///
+			scree.innerHTML += '<div id="sky"></div>'; //draw sky //
+			/////////////////get and set property fo sky and terrain////////////////
+			var terrain = document.getElementById('terrain');
+			var sky = document.getElementById('sky');
+			terrain.style.width = ''+roomLeng+'px';
+			sky.style.width = ''+roomLeng+'px';
+			///////////////////hearts ///////////////////
+			scree.innerHTML += '<svg id="heart"></svg>'; //drawv hearts ///
+			scree.innerHTML += '<svg id="textHeart"></svg>'; //draw text ///
+			///////////////////coins ///////////////////
+			scree.innerHTML += '<img id="coin" style="left:115px;" src="img/coinmodstop.gif" >';
+			//drawv coins ///
+			scree.innerHTML += '<svg id="textCoin" style="left:160px;"></svg>';
+			////// final flag ////////////////
+			scree.innerHTML += '<img id="flag" style=" left:'+(roomLeng-200)+'px; top: '+(((window.innerHeight/100)*65)-300)+'px;" src="img/redflag.gif" >';
+			scree.innerHTML += '<svg id="baseflag" style="left:'+(roomLeng-250)+'px; top: '+(((window.innerHeight/100)*65)-320)+'px;"></svg>';
+			////////////////////////////////////////////
+			var baseflag = document.getElementById('baseflag');
+			baseflag.style.width = '150px';
+			baseflag.style.height = '320px';
+			rect5 = generalPositionAndDimensions(baseflag); ////property of flag //////////////
+			////////////////////////////////////////////////////////
+			for (var i = 0; i<4; i++){
+				var newElement;
+				var svg = document.getElementsByTagName('svg')[i];
+				if (i===0 || i===3){
+					newElement = document.createElementNS('http://www.w3.org/2000/svg', 'polygon'); 
+					if (i===0){
+						newElement.setAttribute('points','25,12 31,5 36,5 41,10 42,20 38,30 25,45 11,30 7,20 9,10 14,5 19,5');
+						newElement.style.fill = 'red'; 
+						newElement.style.stroke = 'black';
+						newElement.style.strokeWidth = '1.5px';	
+					}
+					else {
+						newElement.setAttribute('points','0,320 0,280 50,280 50,20 55,20 55,280 105,280 105,320');
+						newElement.style.fill = '#eae0e0'; 
+						newElement.style.stroke = 'black';
+						newElement.style.strokeWidth = '1px';	
+					}
+					svg.appendChild(newElement);
+				}
+				else if (i===1 || i===2){
+					var textNode;
+					newElement = document.createElementNS('http://www.w3.org/2000/svg', 'text'); //
+					newElement.setAttribute('x',0);
+					newElement.setAttribute('y',40);
+					newElement.setAttribute('font-size',40);
+					if (i===1){
+						textNode = document.createTextNode('X'+maxHearts+''); ///text hearts ////////
+					}
+					else {
+						textNode = document.createTextNode('X'+maxCoins+''); ///text coins ////////
+					}
+					newElement.appendChild(textNode);
+					svg.appendChild(newElement);		
+				}
+			}
+		}
+		function generalPositionAndDimensions(object) {
+			var identity = document.getElementById(''+object+'');
+			var Left = getOffset(object).left;
+			var Top = getOffset(object).top;
+			var Width = parseFloat(object.style.width);
+			var Height = parseFloat(object.style.height);
+			rect = {x: Left, y: Top, width: Width, height: Height};
+			return rect; 
+		}
+		function mushroomCollision () {
+			var rectmario = document.getElementById('mario');
+			//var rectluigi = document.getElementById('luigi');
+			rect1 = generalPositionAndDimensions(rectmario); ////mario///
+			//rect3 = generalPositionAndDimensions(rectluigi); ////mario///
+			for (var position in mushroomsPosition){
+			 	var mushroomsx = mushroomsPosition[position][0];
+			 	var mushroomsy = mushroomsPosition[position][1];
+			 	var mushroomswidth = mushroomsPosition[position][2];
+			 	var mushroomsheight = mushroomsPosition[position][3];
+			 	var mushroomsName = mushroomsPosition[position][4];
+			 	if (rect1.x < mushroomsx + mushroomswidth &&
+							rect1.x + rect1.width > mushroomsx &&
+							rect1.y < mushroomsy + mushroomsheight &&
+							rect1.height + rect1.y > mushroomsy) {
+					console.log('mario got the mushroom',rect1.x,rect1.y);
+					if (document.getElementById(mushroomsName)!==null && marioGodMode===false){
+			 			document.getElementById(mushroomsName).outerHTML = '';
+			 			delete mushrooms[''+mushroomsName+''];
+			 			alert('mario say: i am a big square, now i can destroy also fire');
+			 			mario.width(70);
+						mario.height(70);
+						marioGodMode = true;
+						setTimeout(function(){
+							mario.width(50);
+							mario.height(50);
+							marioGodMode = false;
+						},10000);
+			 		}
+				}
+				/*else if (rect3.x < mushroomsx + mushroomswidth &&
+							rect3.x + rect3.width > mushroomsx &&
+							rect3.y < mushroomsy + mushroomsheight &&
+							rect3.height + rect3.y > mushroomsy) {
+					console.log('luigi got the mushroom',rect3.x,rect3.y);
+					if (document.getElementById(mushroomsName)!==null && luigiGodMode===false){
+			 			document.getElementById(mushroomsName).outerHTML = '';
+			 			delete mushrooms[''+mushroomsName+''];
+			 			alert('luigi say: i am a big square, now i can destroy also fire');
+			 			luigi.width(70);
+						luigi.height(70);
+						luigiGodMode = true;
+						setTimeout(function(){
+							luigi.width(50);
+							luigi.height(50);
+							luigiGodMode = false;
+						},10000);
+			 		}
+				}*/
+			}
+		}
+		function flagCollisionWithMario () {
+			var rectmario = document.getElementById('mario');
+			rect1 = generalPositionAndDimensions(rectmario);
+			////////////////////////////////////////7
+			if (rect1.x < rect5.x + rect5.width &&
+						rect1.x + rect1.width > rect5.x &&
+						rect1.y < rect5.y + rect5.height &&
+						rect1.height + rect1.y > rect5.y) {
+				console.log('got the flag',rect1.x,rect1.y);
+				if (flagOn===true){
+					document.getElementById('flag').style.top = rect1.y-rect1.height+'px';
+					setTimeout(function(){
+					flagOn = false;
+					},1000);	
+				}
+				else {
+					document.getElementById('flag').style.top = (((window.innerHeight/100)*65)-rect1.height*2)+'px';
+					setTimeout(function(){
+						alert('You win!');
+						location.reload();
+					},1000);
+				}
+			}
+		}
+		function getRandomInt(min, max) {
+    			return Math.floor(Math.random() * (max - min + 1)) + min;
+		}
+		function createCoinsAndCloudsAndMushrooms (amount,width,height,type) {
+			for (var g = 0; g<amount; g++){
+				var Name = ''+type+''+g+'';
+					if (type=='coin'){
+						coins[Name] = new coinAndCloudAndMushroom (g,width,height,type);
+					}
+					else if (type=='cloud'){
+						clouds[Name] = new coinAndCloudAndMushroom (g,width,height,type);
+					}
+					else if (type=='mushroom'){
+						mushrooms[Name] = new coinAndCloudAndMushroom (g,width,height,type);
+					}
+			}
+		}
+		function coinAndCloudAndMushroom (g,width,height,type){
+			var sky = document.getElementById('sky');
+			var actualNumberLeft,actualNumberTop;
+			if (type=='coin'){
+				actualNumberLeft = getRandomInt(100,roomLeng-width);
+				actualNumberTop = getRandomInt(height,300);
+				sky.innerHTML += '<img id="coin'+g+'"class="coin" style="left: '+actualNumberLeft+'px;" src="img/coinmod.gif" >';
+			}
+			else if (type=='cloud'){
+				actualNumberLeft = getRandomInt(100,roomLeng-width);
+				actualNumberTop = getRandomInt(((window.innerHeight/100)*60),height);
+				sky.innerHTML += '<img id="cloud'+g+'"class="cloud" style="left: '+actualNumberLeft+'px;" src="img/cloud.gif" >';
+			}
+			else if (type=='mushroom'){
+				actualNumberLeft = getRandomInt(0,roomLeng-width);
+				//actualNumberTop = getRandomInt(height,0);
+				sky.innerHTML += '<img id="mushroom'+g+'"class="mushroom" style="left:'+actualNumberLeft+'px;" src="img/mush.gif" >';	
+			}
+			var currentPos = getOffset(document.getElementById(''+type+''+g+'')).top-actualNumberTop;
+			document.getElementById(''+type+''+g+'').style.top = currentPos+'px';
+			document.getElementById(''+type+''+g+'').style.width = width+'px';
+			document.getElementById(''+type+''+g+'').style.height = height+'px';
+			////////////get position coin ///////////
+			var Name = ''+type+''+g+'';
+			var getNamePos = [getOffset(document.getElementById(''+type+''+g+'')).left,getOffset(document.getElementById(''+type+''+g+'')).top,width,height,Name];
+			if (type=='coin'){
+				coinsPosition.push(getNamePos);
+			}
+			else if (type=='cloud'){
+				cloudsPosition.push(getNamePos);
+			}
+			else if (type=='mushroom'){
+				mushroomsPosition.push(getNamePos);
+			}
+			///////////////////////
+			this.position = function () {
+				var x = getOffset(document.getElementById(''+type+''+g+'')).left;
+				var y = getOffset(document.getElementById(''+type+''+g+'')).top;
+				var xy = [x,y];
+				return xy;
+			};
+		}
+		function coinCollision () {
+			var rectmario = document.getElementById('mario');
+			//var rectluigi = document.getElementById('luigi');
+			rect1 = generalPositionAndDimensions(rectmario); ////mario///
+			//rect3 = generalPositionAndDimensions(rectluigi); ///luigi ///
+			for (var position in coinsPosition){
+			 	var coinx = coinsPosition[position][0];
+			 	var coiny = coinsPosition[position][1];
+			 	var coinwidth = coinsPosition[position][2];
+			 	var coinheight = coinsPosition[position][3];
+			 	var coinName = coinsPosition[position][4];
+			 	if (rect1.x < coinx + coinwidth &&
+						rect1.x + rect1.width > coinx &&
+						rect1.y < coiny + coinheight &&
+						rect1.height + rect1.y > coiny) {
+			 			if (document.getElementById(coinName)!==null){
+			 				document.getElementById(coinName).outerHTML = '';
+							delete coins[''+coinName+''];
+							mario.maxCoins((maxCoins+1));
+						}
+			 	}
+			 	/*else if (rect3.x < coinx + coinwidth &&
+						rect3.x + rect3.width > coinx &&
+						rect3.y < coiny + coinheight &&
+						rect3.height + rect3.y > coiny) {
+			 			if (document.getElementById(coinName)!==null){
+			 				document.getElementById(coinName).outerHTML = '';
+							delete coins[''+coinName+''];
+							luigi.maxCoins((maxCoins+1));
+						}
+			 	}*/	
+			}
+		}
+		function createBoxes () {
+			boxes.box0 = new box('box0','box','i am the box number 1',500,300,100,'yellow');
+			boxes.box1 = new box('box1','box','i am the box number 2',900,200,200,'orange');
+			boxes.box2 = new box('box2','box','i am the box number 3',1700,200,100,'blue');
+			boxes.box3 = new box('box3','box','i am the box number 4',2300,300,50,'purple');
+			boxes.box4 = new box('box4','box','i am the box number 5',2800,50,150,'pink');
+			boxes.box5 = new box('box5','box','i am the box number 6',3300,300,150,'grey');
+			boxes.box6 = new box('box6','box','i am the box number 7',70,250,100,'grey');
+			boxes.box7 = new box('box7','box','i am the box number 8',4800,300,100,'yellow');
+			boxes.box8 = new box('box8','box','i am the box number 9',8900,200,200,'orange');
+			boxes.box9 = new box('box9','box','i am the box number 10',3700,200,100,'blue');
+			boxes.box10 = new box('box10','box','i am the box number 11',4300,300,50,'purple');
+			boxes.box11 = new box('box11','box','i am the box number 12',5800,50,150,'pink');
+			boxes.box12 = new box('box12','box','i am the box number 13',6300,300,150,'red');
+			boxes.box13 = new box('box13','box','i am the box number 14',7500,100,100,'green');
+			boxes.box14 = new box('box14','box','i am the box number 15',8500,300,100,'brown');
+
+		}
+		function box (x, classx, name, left, width, height, color) {
+			document.getElementById('sky').innerHTML += '<div id="'+x+'" style="left:'+left+'px; background-color:'+color+';" class="'+classx+'">'+name+'</div>';
+			document.getElementById(x).style.width = width+'px';
+			document.getElementById(x).style.height = height+'px';
+			this.height = function(height) {
+				document.getElementById(x).style.height = height+'px';
+				var HeightReturn = document.getElementById(x).style.height;
+				return HeightReturn; 	
+			};
+			this.width = function (width) {
+				document.getElementById(x).style.width = width+'px';
+				var widthReturn = document.getElementById(x).style.width;
+				return widthReturn;
+			};
+			this.color = function (color) {
+				document.getElementById(x).style.backgroundColor = color;
+				var colorReturn = document.getElementById(x).style.backgroundColor;
+				return colorReturn;
+			};
+			this.left = function (leftx) {
+				document.getElementById(x).style.left = leftx+'px';
+				var left = document.getElementById(x).style.left;
+				return left;
+			};
+		}
+		/////////////////// Nearest ///////////////////////////////////////////////
+		function setNearest (x,y,classe) {
+			var target;
+			var nearest = getClosestElement(x,y,classe);
+			////////////////default box/////////////
+			if (classe==='box'){
+				target = document.getElementById('box'+nearest+'');
+			}
+			/*////////////////default enemy/////////////
+			if (classe==='enemy'){
+				target = document.getElementById('enemy'+nearest+'');
+			}
+			if (classe==='coin'){
+				target = document.getElementById('coin'+nearest+'');
+			}*/
+			return target;
+		}
+		////////////////////////////////////////////////////
+		function audio () {
+			////////////// audio player coordinate ////////////////
+		    var getAudioPlayerCoord = document.getElementById('audio');
+		    var getAudioPlayerCoordX = getOffset(getAudioPlayerCoord).left;
+		    var getAudioPlayerCoordY = getOffset(getAudioPlayerCoord).top;
+		    //////////////////////////////////////////////////
+			getAudioPlayerCoord.autoplay = true;
+			getAudioPlayerCoord.onended = function () {
+				currentSong += 1;
+				var stringAudioChild = getAudioPlayerCoord.getElementsByTagName('source')[currentSong];
+				if (stringAudioChild===undefined){
+					stringAudioChild = getAudioPlayerCoord.getElementsByTagName('source')[0];
+					currentSong = 0;
+				}
+				//console.log(stringAudioChild);
+				getAudioPlayerCoord.src = stringAudioChild.src;
+				//console.log(sound.src);
+				//sound.load();
+			};
+			getAudioPlayerCoord.load();
+		}
+		//////////////Mario property /////////////////////
+		function mainCharacter (width,height,hearts,name) {
+			if (name=='mario'){
+				document.getElementById('sky').innerHTML += '<div id="mario" style="left:0px; width:'+width+'px; height: '+height+'px">Mario</div>';
+			}
+			/*else if (name=='luigi'){
+				document.getElementById('sky').innerHTML += '<div id="luigi" style="left:0px; width:'+width+'px; height: '+height+'px">Luigi</div>';
+			}*/
+			//var mario = document.getElementById('mario');
+			maxHearts = hearts;
+			this.height = function(height) {
+				if(name=='mario'){
+					document.getElementById('mario').style.height = height+'px';
+					var heightReturn = document.getElementById('mario').style.height;
+				}
+				/*else if (name=='luigi'){
+					document.getElementById('luigi').style.height = height+'px';
+					var heightReturn = document.getElementById('luigi').style.height;
+				}*/
+				return heightReturn;
+			};
+			this.width = function (width) {
+				if(name=='mario'){
+					document.getElementById('mario').style.width = width+'px';
+					var widthReturn = document.getElementById('mario').style.width;
+				}
+				/*else if(name=='luigi'){
+					document.getElementById('luigi').style.width = width+'px';
+					var widthReturn = document.getElementById('luigi').style.width;
+				}*/
+				return widthReturn;
+			};
+			this.jump = function (maxJump) {
+				if (maxJump!==undefined){
+					marioMaxJump = maxJump;
+				}
+				return marioMaxJump;
+			};
+			this.maxHearts = function (hearts){
+				if (hearts!==undefined){
+					maxHearts = hearts;
+					var svg2 = document.getElementsByTagName('svg')[1];
+					svg2.childNodes[0].innerHTML = 'X'+maxHearts+'';
+				}
+				return maxHearts;
+			};
+			this.maxCoins = function (coins){
+				if (coins!==undefined){
+					maxCoins = coins;
+					var svg3 = document.getElementsByTagName('svg')[2];
+					svg3.childNodes[0].innerHTML = 'X'+maxCoins+'';
+				}
+				return maxCoins;
+			};
+		}
+		function createMario (){
+			mario = new mainCharacter(50,50,maxHearts,'mario');
+			window.scrollTo(0,0); ////reset view /////////////
+			//alert('Hi! My name is Mario, i am a square and i would like to be a circle!');
+		}
+		/*function createLuigi () {
+			luigi = new mainCharacter(50,50,maxHearts,'luigi');
+		}*/
+		///////////////////////// enemies /////////////////////////
+		function createEnemies () {
+			enemies.enemy0 = new enemy('enemy0','turtle','turtle',800,50,50);
+			enemies.enemy1 = new enemy('enemy1','turtle','turtle',2900,50,50);
+			enemies.enemy2 = new enemy('enemy2','fire','fire',1200,50,50);
+			enemies.enemy3 = new enemy('enemy3', 'fire', 'fire', 2200,50,50);
+			enemies.enemy4 = new enemy('enemy4', 'turtle', 'turtle', 3800,50,50);
+			enemies.enemy5 = new enemy('enemy5', 'turtle', 'turtle', 2800,50,50);
+			enemies.enemy6 = new enemy('enemy6', 'turtle', 'turtle', 1300,50,50);
+			enemies.enemy7 = new enemy('enemy7', 'fire', 'fire', 320,50,50);
+			enemies.enemy8 = new enemy('enemy8', 'turtle', 'turtle', 1500,50,50);
+			enemies.enemy9 = new enemy('enemy9','fire','fire',4200,50,50);
+			enemies.enemy10 = new enemy('enemy10', 'fire', 'fire', 6200,50,50);
+			enemies.enemy11 = new enemy('enemy11', 'turtle', 'turtle', 5800,50,50);
+			enemies.enemy12 = new enemy('enemy12', 'turtle', 'turtle', 4800,50,50);
+			enemies.enemy13 = new enemy('enemy13', 'turtle', 'turtle', 8300,50,50);
+			enemies.enemy14 = new enemy('enemy14', 'fire', 'fire', 6000,50,50);
+			enemies.enemy15 = new enemy('enemy15', 'turtle', 'turtle', 7500,50,50);
+			enemies.enemy16 = new enemy('enemy16', 'turtle', 'turtle', 9300,50,50);
+			enemies.enemy17 = new enemy('enemy17', 'fire', 'fire', 9000,50,50);
+			enemies.enemy18 = new enemy('enemy18', 'fire', 'fire', 9500,50,50);
+			enemies.enemy19 = new enemy('enemy19', 'fire', 'fire', 9700,50,50);
+			enemies.enemy20 = new enemy('enemy20', 'turtle', 'turtle', 9850,50,50);
+			enemies.enemy21 = new enemy('enemy21', 'fire', 'fire', 9950,50,50);
+		}
+		function moveAllEnemies () {
+			for (var i in enemies){
+				var every = enemies[i].move();
+			}
+		}
+		function stopAllEnemies () {
+			for (var i in enemies){
+				var every = enemies[i].stop();
+			}	
+		}
+		function enemy(x, classx, name, left, width, height) {
+			document.getElementById('sky').innerHTML += '<div id="'+x+'" style="left:'+left+'px; width: '+width+'px; height: '+height+'px;" class="enemy '+classx+'">'+name+'</div>';
+			this.move = function () {
+				var step = 5;
+				var left = 1;
+				var right = 0;
+				this.enemyMoving = setInterval(function(){
+					/////////////////// property of enemy /////////////////
+					var takeEnemy = document.getElementById(x);
+					var enemyX = getOffset(takeEnemy).left;
+					var enemyY = getOffset(takeEnemy).top;
+					var getEnemyWidth = parseFloat(takeEnemy.style.width);
+					var getEnemyHeight = parseFloat(takeEnemy.style.height);
+					//////////property of the next box//////////////
+					var getBox = setNearest(enemyX,enemyY,'box');
+					var getBoxX = getOffset(getBox).left;
+					var getBoxY = getOffset(getBox).top;
+					var getBoxWidth = parseFloat(getBox.style.width);
+					var getBoxHeight = parseFloat(getBox.style.height);
+					//console.log(nearest, enemyX, getBoxX, getBoxWidth, left, right);
+					var getMarioOp = document.getElementById('mario');
+				    var getMarioXOp = getOffset(getMarioOp).left;
+				    var getMarioYOp = getOffset(getMarioOp).top;
+		    		var getMarioWidthOp = parseFloat(getMarioOp.style.width);
+				    var getMarioHeightOp = parseFloat(getMarioOp.style.height);
+				    /////////////////////////////////////////////////////////
+				    /*var getLuigiOp = document.getElementById('luigi');
+				    var getLuigiXOp = getOffset(getLuigiOp).left;
+				    var getLuigiYOp = getOffset(getLuigiOp).top;
+		    		var getLuigiWidthOp = parseFloat(getLuigiOp.style.width);
+				    var getLuigiHeightOp = parseFloat(getLuigiOp.style.height);*/
+				    //////////////////////mario on enemy///////////////////////
+				    if (getMarioXOp+getMarioWidthOp > enemyX && getMarioXOp < enemyX+getEnemyWidth && getMarioYOp+10 >= ((window.innerHeight/100)*65)-(getEnemyHeight+getEnemyHeight) && marioJump===true && (takeEnemy.className!='enemy fire' || marioGodMode===true)){
+				    	console.log('Hit something');
+				    	enemies[''+takeEnemy.id+''].stop();
+				    	enemies[''+takeEnemy.id+''].height(10);
+				    	var time = setTimeout(function(){
+				    		document.getElementById(takeEnemy.id).outerHTML= '';
+							delete enemies[''+takeEnemy.id+''];
+						},1000);
+				    }
+				    /*else if (getMarioXOp+getMarioWidthOp > enemyX && getMarioXOp < enemyX+getEnemyWidth &&
+				    	getMarioYOp > enemyY-getEnemyHeight) {
+				    	mario.maxHearts((maxHearts-1));
+				    	alert('aaarrrghhhh!');
+				    	document.getElementById('mario').style.left = 0+'px';
+				    	document.getElementById('luigi').style.left = document.getElementById('mario').style.left;
+				    	document.getElementById('luigi').style.top = document.getElementById('mario').style.top;
+				    	stepMove = 0;
+				    	stepMoveLuigi = 0;
+				    	window.scrollTo(0,0);////reset view /////////////
+				    	if (maxHearts===0){
+				    		alert('Game Over');
+				    		location.reload();
+				    	} 
+				    }*/
+				    //////////////////////luigi on enemy///////////////////////
+				    /*if (getLuigiXOp+getLuigiWidthOp > enemyX && getLuigiXOp < enemyX+getEnemyWidth && getLuigiYOp+10 >= ((window.innerHeight/100)*65)-(getEnemyHeight+getEnemyHeight) && LuigiJump===true && (takeEnemy.className!='enemy fire' || luigiGodMode===true)){
+				    	console.log('Hit something');
+				    	enemies[''+takeEnemy.id+''].stop();
+				    	enemies[''+takeEnemy.id+''].height(10);
+				    	var time = setTimeout(function(){
+				    		document.getElementById(takeEnemy.id).outerHTML= '';
+							delete enemies[''+takeEnemy.id+''];
+						},1000);
+				    }
+				    else if (getLuigiXOp+getLuigiWidthOp > enemyX && getLuigiXOp < enemyX+getEnemyWidth &&
+				    	getLuigiYOp > enemyY-getEnemyHeight) {
+				    	luigi.maxHearts((maxHearts-1));
+				    	alert('aaarrrghhhh!');
+				    	document.getElementById('luigi').style.left = document.getElementById('mario').style.left;
+				    	document.getElementById('luigi').style.top = document.getElementById('mario').style.top;
+				    	stepMoveLuigi = stepMove;
+				    	if (maxHearts===0){
+				    		alert('Game Over');
+				    		location.reload();
+				    	} 
+				    }*/
+				    //////////////////////////////////////////////////
+					if (left===1){
+						if (enemyX>0 && enemyX!=getBoxX+getBoxWidth){
+							takeEnemy.style.left = enemyX-step+'px';
+
+						}
+						else {
+							left = 0;
+							right = 1;
+						}
+					}
+					if (right===1){
+						if (enemyX+getEnemyWidth<roomLeng && enemyX+getEnemyWidth!=getBoxX){
+							takeEnemy.style.left = enemyX+step+'px';	
+						}
+						else {
+							left = 1;
+							right = 0;
+						}
+					}
+					enemyX = getOffset(takeEnemy).left;
+				},100); 
+				console.log(' im moving...');
+			};
+			this.stop = function () {
+				clearInterval(this.enemyMoving);
+				console.log(' im stopping...');
+			};
+			this.left = function (leftx) {
+				document.getElementById(x).style.left = leftx+'px';
+				var left = document.getElementById(x).style.left;
+				return left;
+			};
+			this.width = function (width){
+				document.getElementById(x).style.width = width+'px';
+				var widthReturn = document.getElementById(x).style.width;
+				return widthReturn;
+			};
+			this.height = function (height){
+				document.getElementById(x).style.height = height+'px';
+				var heightReturn = document.getElementById(x).style.height;
+				return heightReturn;
+			};
+		}
+		function getOffset(el) {
+		  el = el.getBoundingClientRect();
+		  return {
+		    left: el.left + window.scrollX,
+		    top: el.top + window.scrollY
+		  };
+		}
+		function getClosestElement(x, y, classe) {
+		    var elements, el, offsetLeft, offsetTop, dist, distanceContainer, i, closestEl;
+			elements = document.getElementsByClassName(classe);
+			distanceContainer = [];
+		    for (var i=0; i < elements.length; i++) {
+		        el = elements[i];
+		        offsetLeft = getOffset(elements[i]).left;
+			    offsetTop = getOffset(elements[i]).top;
+			    offsetLeft += parseFloat(elements[i].style.width)/2; // center of object
+			    offsetTop += parseFloat(elements[i].style.height)/2; // middle of object
+			    //console.log('offsetTop: '+offsetTop+',offsetLeft: '+offsetLeft+'');
+		    	dist = Math.sqrt((offsetLeft - x)*(offsetLeft - x) + (offsetTop - y)*(offsetTop - y));
+		    	distanceContainer.push(dist);
+		    }
+		    var getLowerNumber = Math.min.apply(Math, distanceContainer);
+		    var nearestObject = distanceContainer.indexOf(getLowerNumber);
+		    return nearestObject;
+		}
+		document.onkeydown = function(e) {
+			///////////////mario coordinate and dimension ///////////////
+		    var getMario = document.getElementById('mario');
+		    var getMarioX = getOffset(getMario).left;
+		    var getMarioY = getOffset(getMario).top;
+    		var getMarioWidth = parseFloat(getMario.style.width);
+		    var getMarioHeight = parseFloat(getMario.style.height);
+		    /////////////the nearest box to mario /////////////
+		    var getBox = setNearest(getMarioX,getMarioY,'box');
+			var getBoxX = getOffset(getBox).left;
+		    var getBoxY = getOffset(getBox).top;
+		    var getBoxWidth = parseFloat(getBox.style.width);
+		    var getBoxHeight = parseFloat(getBox.style.height);
+		    ///console.log('getBoxHeight:'+getBoxHeight+',getBoxWidth: '+getBoxWidth+'');
+		    rect1 = {x: getMarioX, y: getMarioY, width: getMarioWidth, height: getMarioHeight}; ////mario///
+			rect2 = {x: getBoxX, y: getBoxY, width: getBoxWidth, height: getBoxHeight, multipler:
+			 (getBoxHeight/rect1.height)+1};
+			/////////////// coin collision ///////////////
+			coinCollision();
+			flagCollisionWithMario();
+			mushroomCollision();
+			/////////////////////////////////
+			/*var getLuigi = document.getElementById('luigi');
+		    var getLuigiX = getOffset(getLuigi).left;
+		    var getLuigiY = getOffset(getLuigi).top;
+		    var getLuigiWidth = parseFloat(getLuigi.style.width);
+		    var getLuigiHeight = parseFloat(getLuigi.style.height);
+		    var getBoxLuigi = setNearest(getLuigiX,getLuigiY,'box');
+		    var getBoxXLuigi = getOffset(getBoxLuigi).left;
+		    var getBoxYLuigi = getOffset(getBoxLuigi).top;
+		    var getBoxWidthLuigi = parseFloat(getBoxLuigi.style.width);
+		    var getBoxHeightLuigi = parseFloat(getBoxLuigi.style.height);
+		    ///////////////////////////////////////////////
+		    rect3 = {x: getLuigiX, y: getLuigiY, width: getLuigiWidth, height: getLuigiHeight}; ////mario///
+			rect4 = {x: getBoxXLuigi, y: getBoxYLuigi, width: getBoxWidthLuigi, height: getBoxHeightLuigi, multipler:
+			 (getBoxHeightLuigi/rect3.height)+1};*/
+			////////////////////////////////////
+		    /////////////////////////////////////
+			if (e.keyCode in key) {
+				key[e.keyCode] = true;
+		        if (key[37]) {
+		        	//if (!(getMarioX<getLuigiX-600)){
+		        	right = 0;
+		        	left = 1;
+		        	//////////////////////Mario move on the left ///////////////////////////
+		        	if (getMarioX>0){
+			        	if (getMarioX!=rect2.x+rect2.width || getMarioY+rect1.height<getBoxY ){
+			        		stepMove -= 5;
+			        	}
+			        	if (getOffset(getMario).left<rect2.x+rect2.width && getOffset(getMario).left+rect1.width>rect2.x && getOffset(getMario).top>((window.innerHeight/100)*65)-(rect1.height*rect2.multipler)){
+							getMario.style.top = ((window.innerHeight/100)*65)-(rect1.height*rect2.multipler)+'px';
+							marioJump = false;
+							stepJump = 0;
+						}
+						else if (getOffset(getMario).left<=getBoxX-rect1.width && right===0 && up===0){
+							var fallDownLeft = setInterval(function(){
+								getMario.style.top = (getOffset(getMario).top+20)+'px';
+								/////////////// coin collision ///////////////
+								coinCollision();
+								flagCollisionWithMario();
+								mushroomCollision();
+								/////////////////////////////////////
+								if (getOffset(getMario).top>((window.innerHeight/100)*65)-rect1.height){
+									clearInterval(fallDownLeft);
+									getMario.style.top = ((window.innerHeight/100)*65)-rect1.height+'px';
+								}
+							},100);
+							//marioJump = true;
+						}
+						getMario.style.left = stepMove+'px';
+			           	window.scrollTo(getMarioX-600,getMarioY);
+			        }
+			        e.preventDefault();
+			    	//}
+			    }
+		        if (key[38]) {
+		        	right = 0;
+		        	left = 0;
+		        	up = 1;
+		        	//////////////////////Mario can jump /////////////////////////
+		        	if(marioJump===false){
+			        	var jumping = setInterval(function(){ 
+				        	getMario.style.top = (getMarioY-stepJump)+'px';
+				        	stepJump += 20; /////max jump mario ////
+				        	marioJump = true;
+				        	/////////////// coin collision ///////////////
+							coinCollision();
+							flagCollisionWithMario();
+							mushroomCollision();
+							/////////////////////////////////////
+				        	if (stepJump>=marioMaxJump){
+				        	//////////////Mario and the gravity ////////////
+			        		var fallDown = setInterval(function(){ 
+						        	getMario.style.top = (getMarioY-stepJump)+'px';
+						        	stepJump -= 20;
+						        	marioJump = true;
+						        	/////////////// coin collision ///////////////
+									coinCollision();
+									flagCollisionWithMario();
+									mushroomCollision();
+									/////////////////////////////////////
+				        	    	//////////if there aren't boxes, Mario simply falls down on terrain ////
+						        	if (getOffset(getMario).left<rect2.x+rect2.width && getOffset(getMario).left+rect1.width>rect2.x && getOffset(getMario).top>((window.innerHeight/100)*65)-(rect1.height*rect2.multipler)){
+										getMario.style.top = ((window.innerHeight/100)*65)-(rect1.height*rect2.multipler)+'px';
+										stepJump = 0;
+										marioJump = false;
+										up = 0;
+										clearInterval(fallDown);
+									}
+									else if (getOffset(getMario).top>((window.innerHeight/100)*65)-rect1.height){
+										getMario.style.top = ((window.innerHeight/100)*65)-rect1.height+'px';
+					        			stepJump = 0;
+							        	marioJump = false;
+							        	up = 0;
+							        	clearInterval(fallDown);
+						        	}
+						    },100);
+							clearInterval(jumping);
+				        	}
+				        }, 100);
+			        }
+			        e.preventDefault();
+			    }
+		        if (key[39]) {
+		        	//if (!(getMarioX>getLuigiX+600)){
+		        	right = 1;
+		        	left = 0;
+		        	//////Mario move on the right /////////////////////
+		        	if (getMarioX<roomLeng-rect1.width){
+		        		if (getMarioX+rect1.width!=rect2.x || getMarioY+rect1.height<getBoxY){
+			        		stepMove += 5;
+			        	}
+			        	if (getOffset(getMario).left<rect2.x+rect2.width && getOffset(getMario).left+rect1.width>rect2.x && getOffset(getMario).top>((window.innerHeight/100)*65)-(rect1.height*rect2.multipler)){
+							getMario.style.top = ((window.innerHeight/100)*65)-(rect1.height*rect2.multipler)+'px';
+							marioJump = false;
+							stepJump = 0;
+						}
+						else if (getOffset(getMario).left>=getBoxX+getBoxWidth && left===0 && up===0){
+							var fallDownRight = setInterval(function(){
+								getMario.style.top = (getOffset(getMario).top+20)+'px';
+								/////////////// coin collision ///////////////
+								coinCollision();
+								flagCollisionWithMario();
+								mushroomCollision();
+								/////////////////////////////////////
+								if (getOffset(getMario).top>((window.innerHeight/100)*65)-rect1.height){
+									clearInterval(fallDownRight);
+									getMario.style.top = ((window.innerHeight/100)*65)-rect1.height+'px';
+								}
+							},100);
+							//marioJump = true;
+						}
+					    getMario.style.left = stepMove+'px';
+			        	window.scrollTo(getMarioX-600,getMarioY);
+			        }
+			        e.preventDefault();
+			    	//}
+			    }
+			    if (key[122]) {
+			    	location.reload();
+			    }
+			    if (key[123]) {
+			    	location.reload();
+			    }
+			    
+			    /*if (key[87]) {
+		        	rightLuigi = 0;
+		        	leftLuigi = 0;
+		        	upLuigi = 1;
+		        	//////////////////////Luigi can jump /////////////////////////
+		        	if(LuigiJump===false){
+			        	var jumpingLuigi = setInterval(function(){ 
+				        	getLuigi.style.top = (getLuigiY-stepJumpLuigi)+'px';
+				        	stepJumpLuigi += 20; /////max jump Luigi ////
+				        	LuigiJump = true;
+				        	/////////////// coin collision ///////////////
+							coinCollision();
+							//flagCollisionWithLuigi();
+							mushroomCollision();
+							/////////////////////////////////////
+				        	if (stepJumpLuigi>=LuigiMaxJump){
+				        	//////////////Luigi and the gravity ////////////
+			        		var fallDown = setInterval(function(){ 
+						        	getLuigi.style.top = (getLuigiY-stepJumpLuigi)+'px';
+						        	stepJumpLuigi -= 20;
+						        	LuigiJump = true;
+						        	/////////////// coin collision ///////////////
+									coinCollision();
+									//flagCollisionWithLuigi();
+									mushroomCollision();
+									/////////////////////////////////////
+				        	    	//////////if there aren't boxes, Luigi simply falls down on terrain ////
+						        	if (getOffset(getLuigi).left<rect4.x+rect4.width && getOffset(getLuigi).left+rect3.width>rect4.x && getOffset(getLuigi).top>((window.innerHeight/100)*65)-(rect3.height*rect4.multipler)){
+										getLuigi.style.top = ((window.innerHeight/100)*65)-(rect3.height*rect4.multipler)+'px';
+										stepJumpLuigi = 0;
+										LuigiJump = false;
+										upLuigi = 0;
+										clearInterval(fallDown);
+									}
+									else if (getOffset(getLuigi).top>((window.innerHeight/100)*65)-rect3.height){
+										getLuigi.style.top = ((window.innerHeight/100)*65)-rect3.height+'px';
+					        			stepJumpLuigi = 0;
+							        	LuigiJump = false;
+							        	upLuigi = 0;
+							        	clearInterval(fallDown);
+						        	}
+						    },100);
+							clearInterval(jumpingLuigi);
+				        	}
+				        }, 100);
+			        }
+			        e.preventDefault();
+		        }
+		        if (key[65]) {
+		        	if (!(getLuigiX<getMarioX-600)){
+		        	rightLuigi = 0;
+		        	leftLuigi = 1;
+		        	//////////////////////Luigi move on the left ///////////////////////////
+		        	if (getLuigiX>0){
+			        	if (getLuigiX!=rect4.x+rect4.width || getLuigiY+rect3.height<getBoxYLuigi ){
+			        		stepMoveLuigi -= 5;
+			        	}
+			        	if (getOffset(getLuigi).left<rect4.x+rect4.width && getOffset(getLuigi).left+rect3.width>rect4.x && getOffset(getLuigi).top>((window.innerHeight/100)*65)-(rect3.height*rect4.multipler)){
+							getLuigi.style.top = ((window.innerHeight/100)*65)-(rect3.height*rect4.multipler)+'px';
+							LuigiJump = false;
+							stepJumpLuigi = 0;
+						}
+						else if (getOffset(getLuigi).left<=getBoxXLuigi-rect3.width && rightLuigi===0 && upLuigi===0){
+							var fallDownLeftLuigi = setInterval(function(){
+								getLuigi.style.top = (getOffset(getLuigi).top+20)+'px';
+								/////////////// coin collision ///////////////
+								coinCollision();
+								//flagCollisionWithLuigi();
+								mushroomCollision();
+								/////////////////////////////////////
+								if (getOffset(getLuigi).top>((window.innerHeight/100)*65)-rect3.height){
+									clearInterval(fallDownLeftLuigi);
+									getLuigi.style.top = ((window.innerHeight/100)*65)-rect3.height+'px';
+								}
+							},100);
+							//LuigiJump = true;
+						}
+						getLuigi.style.left = stepMoveLuigi+'px';
+			           	window.scrollTo(getMarioX-600,getMarioY);
+			        }
+			        e.preventDefault();
+			        }
+			    }
+			    if (key[68]) {
+		        	if (!(getLuigiX>getMarioX+600)){
+		        	rightLuigi = 1;
+		        	leftLuigi = 0;
+		        	//////Luigi move on the rightLuigi /////////////////////
+		        	if (getLuigiX<roomLeng-rect3.width){
+		        		if (getLuigiX+rect3.width!=rect4.x || getLuigiY+rect3.height<getBoxYLuigi){
+			        		stepMoveLuigi += 5;
+			        	}
+			        	if (getOffset(getLuigi).left<rect4.x+rect4.width && getOffset(getLuigi).left+rect3.width>rect4.x && getOffset(getLuigi).top>((window.innerHeight/100)*65)-(rect3.height*rect4.multipler)){
+							getLuigi.style.top = ((window.innerHeight/100)*65)-(rect3.height*rect4.multipler)+'px';
+							LuigiJump = false;
+							stepJumpLuigi = 0;
+						}
+						else if (getOffset(getLuigi).left>=getBoxXLuigi+getBoxWidthLuigi && leftLuigi===0 && upLuigi===0){
+							var fallDownrightLuigi = setInterval(function(){
+								getLuigi.style.top = (getOffset(getLuigi).top+20)+'px';
+								/////////////// coin collision ///////////////
+								coinCollision();
+								//flagCollisionWithLuigi();
+								mushroomCollision();
+								/////////////////////////////////////
+								if (getOffset(getLuigi).top>((window.innerHeight/100)*65)-rect3.height){
+									clearInterval(fallDownrightLuigi);
+									getLuigi.style.top = ((window.innerHeight/100)*65)-rect3.height+'px';
+								}
+							},100);
+							//LuigiJump = true;
+						}
+					    getLuigi.style.left = stepMoveLuigi+'px';
+			        	window.scrollTo(getMarioX-600,getMarioY);
+			        }
+			        e.preventDefault();
+			        }
+			    }*/
+			    /*case 40:
+		            break;
+		        case 122:
+		        	//location.reload();
+		        	break;
+		        case 123:
+		        	//location.reload();
+		        	break;
+		        default:
+		        	console.log('no valid key');*/
+		    }
+		};
+		document.onkeyup = (function(e) {
+			if (e.keyCode in key) {
+				key[e.keyCode] = false;
+			}
+		});
+		</script>
+	</head>
+	<body onload="start();">
+		<audio id="audio" controls="controls">
+			<!-- add audio source here -->
+			 <source src="audio/a1.mp3" type="audio/mpeg" />
+			 <source src="audio/a2.mp3" type="audio/mpeg" />
+			 <source src="audio/a3.mp3" type="audio/mpeg" />
+		</audio>
+	</body>
+</html>

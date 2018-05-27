@@ -1,0 +1,125 @@
+html,body {
+	margin: 0;
+	overflow: hidden;
+}
+#screen {
+	height: window.innerHeight;
+}
+#terrain {
+	position: absolute;
+	bottom: 0;
+	height: 35%;
+	opacity: 0.9;
+	background-color: #28bc6e;
+}
+#sky {
+	position: absolute;
+	top: 0;
+	height: 65%;
+	opacity: 1;
+	background-color: #b0e0e6;
+}
+#mario {
+	position:absolute;
+	bottom: 0;
+	margin: 0;
+	opacity: 0.8;
+	z-index: 2;
+	background-color: red;
+}
+#luigi {
+	position:absolute;
+	bottom: 0;
+	margin: 0;
+	opacity: 0.8;
+	z-index: 2;
+	background-color: green;
+}
+.enemy {
+	position:absolute;
+	bottom: 0;
+	margin: 0;
+	opacity: 0.8;
+	z-index: 1;
+}
+.enemy.turtle {
+	background-color: green;
+}
+.enemy.fire {
+	background-color: orange;
+}	
+.box {
+	position:absolute;
+	bottom: 0;
+	margin: 0;
+}
+#audio {
+	position: fixed;
+	bottom: 0;
+	margin: 0;
+	z-index: 2;
+}
+#heart {
+	position: fixed;
+	height: 50px;
+	width: 50px;
+	top: 0;
+	left: 0;
+	margin: 0;
+	z-index: 2;
+}
+#textHeart {
+	position: fixed;
+	height: 200px;
+	width: 200px;
+	top: 0;
+	left: 100;
+	margin: 0;
+	z-index: 2;
+}
+.coin {
+	position: absolute;
+	bottom: 0;
+	margin: 0;
+}
+#coin {
+	position: fixed;
+	height: 50px;
+	width: 50px;
+	top: 0;
+	margin: 0;
+	z-index: 2;
+}
+#textCoin {
+	position: fixed;
+	height: 200px;
+	width: 200px;
+	top: 0;
+	margin: 0;
+	z-index: 2;
+}
+.cloud {
+	position: absolute;
+	bottom: 0;
+	margin: 0;
+	opacity: 0.6;
+}
+#baseflag {
+	position: absolute;
+	margin: 0;
+	bottom: 0;
+}
+#flag {
+	position: absolute;
+	height: 50px;
+	width: 100px;
+	margin: 0;
+	bottom: 0;
+	z-index: 2;
+}
+.mushroom {
+	position: absolute;;
+	margin-bottom: 1px;
+	bottom: 0;
+	/*z-index: 1;*/
+}
